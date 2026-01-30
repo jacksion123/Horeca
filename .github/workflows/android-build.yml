@@ -9,8 +9,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    env:
+      NODE_OPTIONS: --max_old_space_size=4096
+
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Setup Node.js
@@ -18,25 +21,34 @@ jobs:
         with:
           node-version: 18
 
-      - name: Install dependencies (legacy peer deps)
+      - name: Install dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Setup Java (required for Android)
+      - name: Bundle React Native JS
+        run: |
+          npx react-native bundle \
+          --platform android \
+          --dev false \
+          --entry-file index.js \
+          --bundle-output android/app/src/main/assets/index.android.bundle \
+          --assets-dest android/app/src/main/res
+
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
 
-      - name: Grant permission to gradlew
+      - name: Grant gradlew permission
         run: cd android && chmod +x gradlew
 
-      - name: Clean Android build
+      - name: Clean build
         run: cd android && ./gradlew clean
 
-      - name: Build Android App Bundle (AAB)
+      - name: Build Android AAB
         run: cd android && ./gradlew bundleRelease
 
-      - name: Upload AAB file
+      - name: Upload AAB
         uses: actions/upload-artifact@v4
         with:
           name: app-release-aab
